@@ -1,0 +1,7 @@
+secrets/
+backups/
+logs/
+certs/
+*.bak
+*.tmp
+*.swp
