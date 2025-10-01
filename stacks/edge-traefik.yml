@@ -1,0 +1,42 @@
+services:
+  traefik:
+    image: traefik:v3.1.4
+    container_name: edge-traefik
+    user: "0:0"
+    security_opt: ["no-new-privileges:true"]
+    networks: [edge]
+    ports:
+      - "80:80"
+      - "443:443"
+    command:
+      - --log.level=DEBUG
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
+      - --api=true
+      - --api.dashboard=true
+      - --ping=true
+      - --accesslog=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /opt/dragoncave/configs/traefik:/etc/traefik/dynamic:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    # No labels needed for the dashboard now (file provider handles it)
+    secrets:
+      - traefik_basicauth
+
+networks:
+  edge:
+    external: true
+
+secrets:
+  traefik_basicauth:
+    file: /opt/dragoncave/secrets/TRAEFIK_BASIC_AUTH

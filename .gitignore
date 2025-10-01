@@ -1,0 +1,8 @@
+# Local secrets (never commit)
+.env.dragoncave
+secrets/
+
+# OS/editor clutter
+*.swp
+*.bak
+.DS_Store
