@@ -1,8 +1,30 @@
-# Local secrets (never commit)
-.env.dragoncave
-secrets/
+# Ignore environment files
+.env
+.env.*
 
-# OS/editor clutter
-*.swp
+# Ignore secrets
+secrets/
+*.secret
+*.key
+*.crt
+*.pem
+
+# Ignore local configs (outside repo structure)
+opt/
+configs/secrets/
+
+# Ignore logs and temp files
+*.log
+*.tmp
 *.bak
+*.swp
+
+# Ignore Python cache (if used later)
+__pycache__/
+*.pyc
+
+# Ignore macOS system files
 .DS_Store
+
+# Ignore nano backups
+*~
