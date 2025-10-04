@@ -28,3 +28,7 @@ __pycache__/
 
 # Ignore nano backups
 *~
+# ---- Dragoncave local certs (do not commit) ----
+configs/traefik/certs/
+configs/traefik/*.key
+configs/traefik/*.crt
