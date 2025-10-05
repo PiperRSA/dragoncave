@@ -1,0 +1,10 @@
+http:
+  routers:
+    traefik-dashboard:
+      rule: Host(`traefik.hexwyrm.com`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))
+      entryPoints:
+        - websecure
+      middlewares:
+        - traefik-auth
+      service: api@internal
+      tls: {}
