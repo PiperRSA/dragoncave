@@ -1,33 +1,32 @@
 http:
-  routers:
-    traefik-ui:
-      rule: Host(`traefik.hexwyrm.com`) && PathPrefix(`/dashboard`)
-      entryPoints: [websecure]
-      tls: true
-      service: dashboard@internal
-      middlewares: [traefik-auth]
-
-    traefik-api:
-      rule: Host(`traefik.hexwyrm.com`) && PathPrefix(`/api`)
-      entryPoints: [websecure]
-      tls: true
-      service: api@internal
-      middlewares: [traefik-auth]
-
-    traefik-root:
-      rule: Host(`traefik.hexwyrm.com`) && Path(`/`)
-      entryPoints: [websecure]
-      tls: true
-      service: noop@internal
-      middlewares: [traefik-auth, traefik-redir]
-
   middlewares:
     traefik-auth:
       basicAuth:
         usersFile: /run/secrets/traefik_basicauth
-
     traefik-redir:
       redirectRegex:
         regex: "^https?://([^/]+)/?$"
         replacement: "https://${1}/dashboard/"
         permanent: true
+
+  routers:
+    traefik-api:
+      entryPoints: [websecure]
+      middlewares: [traefik-auth]
+      rule: Host(`traefik.hexwyrm.com`) && PathPrefix(`/api`)
+      service: api@internal
+      tls: {}
+
+    traefik-root:
+      entryPoints: [websecure]
+      middlewares: [traefik-auth, traefik-redir]
+      rule: Host(`traefik.hexwyrm.com`) && Path(`/`)
+      service: noop@internal
+      tls: {}
+
+    traefik-ui:
+      entryPoints: [websecure]
+      middlewares: [traefik-auth]
+      rule: Host(`traefik.hexwyrm.com`) && PathPrefix(`/dashboard`)
+      service: api@internal
+      tls: {}
