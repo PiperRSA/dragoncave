@@ -1,0 +1,39 @@
+tunnel: <TUNNEL-UUID>
+credentials-file: /etc/cloudflared/<TUNNEL-UUID>.json
+
+originRequest:
+  noTLSVerify: true
+  connectTimeout: 30s
+
+ingress:
+  - hostname: portainer.hexwyrm.com
+    service: https://edge-traefik:443
+    originRequest:
+      httpHostHeader: portainer.hexwyrm.com
+
+  - hostname: traefik.hexwyrm.com
+    service: https://edge-traefik:443
+    originRequest:
+      httpHostHeader: traefik.hexwyrm.com
+
+  - hostname: whoami.hexwyrm.com
+    service: https://edge-traefik:443
+    originRequest:
+      httpHostHeader: whoami.hexwyrm.com
+
+  - hostname: pihole.hexwyrm.com
+    service: https://edge-traefik:443
+    originRequest:
+      httpHostHeader: pihole.hexwyrm.com
+
+  - hostname: obs.hexwyrm.com
+    service: https://edge-traefik:443
+    originRequest:
+      httpHostHeader: obs.hexwyrm.com
+
+  - hostname: logs.hexwyrm.com
+    service: https://edge-traefik:443
+    originRequest:
+      httpHostHeader: logs.hexwyrm.com
+
+  - service: http_status:404
