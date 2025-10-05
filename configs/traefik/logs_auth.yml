@@ -1,0 +1,7 @@
+http:
+  middlewares:
+    logs-auth:
+      basicAuth:
+        usersFile: /etc/traefik/dynamic/logs_basicauth.htpasswd
+        realm: "Logs"
+        removeHeader: true

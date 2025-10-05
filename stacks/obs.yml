@@ -1,0 +1,51 @@
+name: obs
+
+services:
+  kuma:
+    image: louislam/uptime-kuma:1
+    container_name: obs-kuma
+    restart: unless-stopped
+    environment:
+      - TZ=Africa/Johannesburg
+    volumes:
+      - /opt/dragoncave/configs/uptime-kuma:/app/data
+    networks:
+      - edge
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.obs-kuma.rule=Host(`obs.hexwyrm.com`)
+      - traefik.http.routers.obs-kuma.entrypoints=websecure
+      - traefik.http.routers.obs-kuma.tls=true
+      - traefik.http.services.obs-kuma.loadbalancer.server.port=3001
+
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: logs-dozzle
+    restart: unless-stopped
+    environment:
+      - TZ=Africa/Johannesburg
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - edge
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.logs-dozzle.rule=Host(`logs.hexwyrm.com`)
+      - traefik.http.routers.logs-dozzle.entrypoints=websecure
+      - traefik.http.routers.logs-dozzle.tls=true
+      - traefik.http.routers.logs-dozzle.middlewares=logs-auth@file
+      - traefik.http.services.logs-dozzle.loadbalancer.server.port=8080
+
+networks:
+  edge:
+    external: true

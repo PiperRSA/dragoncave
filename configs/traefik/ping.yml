@@ -1,0 +1,8 @@
+http:
+  routers:
+    traefik-ping:
+      rule: Host(`traefik.hexwyrm.com`) && Path(`/ping`)
+      entryPoints:
+        - websecure
+      service: ping@internal
+      tls: {}

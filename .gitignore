@@ -1,3 +1,4 @@
+# Dragoncave gitignore
 secrets/
 backups/
 logs/
@@ -5,3 +6,13 @@ certs/
 *.bak
 *.tmp
 *.swp
+*.swo
+.DS_Store
+
+# Sensitive auth hashes
+*.htpasswd
+
+# Local Python envs
+venv/
+.venv/
+venv*/
