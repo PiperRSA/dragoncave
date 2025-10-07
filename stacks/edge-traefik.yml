@@ -25,7 +25,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /opt/dragoncave/configs/traefik:/etc/traefik/dynamic:ro
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/ping"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:8082/ping"]
       interval: 30s
       timeout: 5s
       retries: 3
