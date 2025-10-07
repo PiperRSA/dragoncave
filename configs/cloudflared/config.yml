@@ -3,7 +3,6 @@ tunnel: c1a27dbd-9770-4ac2-98e2-643080c1a243
 credentials-file: /etc/cloudflared/c1a27dbd-9770-4ac2-98e2-643080c1a243.json
 
 originRequest:
-  noTLSVerify: true
   connectTimeout: 30s
 
 ingress:
