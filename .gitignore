@@ -20,3 +20,6 @@ configs/cloudflared/
 configs/pihole/etc-pihole/cli_pw
 configs/pihole/etc-pihole/tls.*
 configs/pihole/etc-pihole/pihole-FTL.db*
+
+# Ignore Pi-hole live configs (root-owned)
+configs/pihole/**
