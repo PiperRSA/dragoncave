@@ -1,0 +1,43 @@
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:1.64.0
+    restart: unless-stopped
+    user: "1000:1000"
+    read_only: false
+    networks: [edge, core]
+    env_file:
+      - /opt/dragoncave/.env.dragoncave
+    environment:
+      - N8N_HOST=n8n.${PUBLIC_DOMAIN}
+      - N8N_PROTOCOL=https
+      - N8N_PORT=5678
+      - N8N_ENCRYPTION_KEY_FILE=/run/secrets/N8N_ENCRYPTION_KEY
+      - WEBHOOK_TUNNEL_URL=https://n8n.${PUBLIC_DOMAIN}
+      - GENERIC_TIMEZONE=${TZ}
+    volumes:
+      - /srv/n8n-data:/home/node/.n8n
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    secrets:
+      - TRAEFIK_BASIC_AUTH
+      - N8N_ENCRYPTION_KEY
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.n8n.rule=Host(`n8n.${PUBLIC_DOMAIN}`)"
+      - "traefik.http.routers.n8n.entrypoints=websecure"
+      - "traefik.http.services.n8n.loadbalancer.server.port=5678"
+      - "traefik.http.middlewares.basic-auth.basicauth.usersfile=/run/secrets/TRAEFIK_BASIC_AUTH"
+      - "traefik.http.routers.n8n.middlewares=basic-auth@docker"
+
+secrets:
+  TRAEFIK_BASIC_AUTH:
+    file: /opt/dragoncave/secrets/TRAEFIK_BASIC_AUTH
+  N8N_ENCRYPTION_KEY:
+    file: /opt/dragoncave/secrets/N8N_ENCRYPTION_KEY
+
+networks:
+  edge: {external: true}
+  core: {external: true}
