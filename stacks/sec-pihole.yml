@@ -1,0 +1,43 @@
+services:
+  pihole:
+    image: pihole/pihole:latest
+    container_name: pihole
+    user: "0:0"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - edge
+      - dns
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    environment:
+      TZ: ${TZ}
+      ServerIP: ${PI_HOST_IP}
+      FTLCONF_LOCAL_IPV4: ${PI_HOST_IP}
+      DNSMASQ_LISTENING: all
+      PIHOLE_DNS_: 1.1.1.1;1.0.0.1
+      WEBPASSWORD_FILE: /run/secrets/PIHOLE_WEBPASSWORD
+    volumes:
+      - /opt/dragoncave/configs/pihole/etc-pihole:/etc/pihole
+      - /opt/dragoncave/configs/pihole/etc-dnsmasq.d:/etc/dnsmasq.d
+    secrets:
+      - PIHOLE_WEBPASSWORD
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "edge"
+      traefik.http.routers.pihole.rule: "Host(`pihole.${PUBLIC_DOMAIN}`)"
+      traefik.http.routers.pihole.entrypoints: "websecure"
+      traefik.http.routers.pihole.tls: "true"
+      traefik.http.services.pihole.loadbalancer.server.port: "80"
+
+networks:
+  edge:
+    external: true
+  dns:
+    external: true
+
+secrets:
+  PIHOLE_WEBPASSWORD:
+    file: /opt/dragoncave/secrets/PIHOLE_WEBPASSWORD
