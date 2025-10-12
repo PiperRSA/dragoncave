@@ -1,33 +1,35 @@
 http:
-  routers:
-    traefik-ui:
-      rule: Host(`traefik.hexwyrm.com`) && PathPrefix(`/dashboard`)
-      entryPoints: [websecure]
-      tls: true
-      service: dashboard@internal
-      middlewares: [traefik-auth]
-
-    traefik-api:
-      rule: Host(`traefik.hexwyrm.com`) && PathPrefix(`/api`)
-      entryPoints: [websecure]
-      tls: true
-      service: api@internal
-      middlewares: [traefik-auth]
-
-    traefik-root:
-      rule: Host(`traefik.hexwyrm.com`) && Path(`/`)
-      entryPoints: [websecure]
-      tls: true
-      service: noop@internal
-      middlewares: [traefik-auth, traefik-redir]
-
   middlewares:
     traefik-auth:
       basicAuth:
         usersFile: /run/secrets/traefik_basicauth
-
     traefik-redir:
       redirectRegex:
         regex: "^https?://([^/]+)/?$"
         replacement: "https://${1}/dashboard/"
         permanent: true
+
+  routers:
+    traefik-api:
+      rule: "Host(`traefik.hexwyrm.com`) && PathPrefix(`/api`)"
+      entryPoints: ["websecure"]
+      middlewares: ["traefik-auth"]
+      service: "api@internal"
+      tls:
+        certResolver: "cloudflare"
+
+    traefik-root:
+      rule: "Host(`traefik.hexwyrm.com`) && Path(`/`)"
+      entryPoints: ["websecure"]
+      middlewares: ["traefik-auth","traefik-redir"]
+      service: "noop@internal"
+      tls:
+        certResolver: "cloudflare"
+
+    traefik-ui:
+      rule: "Host(`traefik.hexwyrm.com`) && PathPrefix(`/dashboard`)"
+      entryPoints: ["websecure"]
+      middlewares: ["traefik-auth"]
+      service: "dashboard@internal"
+      tls:
+        certResolver: "cloudflare"
