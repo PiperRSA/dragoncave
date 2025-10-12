@@ -1,0 +1,5 @@
+services:
+  portainer:
+    labels:
+      - traefik.http.routers.portainer.tls=true
+      - traefik.http.routers.portainer.tls.certresolver=cloudflare
