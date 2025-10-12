@@ -1,0 +1,76 @@
+x-deploy-defaults: &deploy_defaults
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    <<: *deploy_defaults
+    user: "999:999"
+    environment:
+      POSTGRES_DB: appdb
+      POSTGRES_USER_FILE: /run/secrets/POSTGRES_USER
+      POSTGRES_PASSWORD_FILE: /run/secrets/POSTGRES_PASSWORD
+    volumes:
+      - /opt/dragoncave/data/postgres/shared:/var/lib/postgresql/data
+    networks:
+      - core
+
+  mariadb:
+    image: mariadb:11
+    <<: *deploy_defaults
+    user: "999:999"
+    environment:
+      MARIADB_DATABASE: appdb
+      MARIADB_USER_FILE: /run/secrets/MARIADB_USER
+      MARIADB_PASSWORD_FILE: /run/secrets/MARIADB_PASS
+      MARIADB_ROOT_PASSWORD_FILE: /run/secrets/MARIADB_ROOT_PASS
+    volumes:
+      - /opt/dragoncave/data/mariadb:/var/lib/mysql
+    networks:
+      - core
+
+  redis:
+    image: redis:7-alpine
+    <<: *deploy_defaults
+    user: "1000:1000"
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - /opt/dragoncave/data/redis:/data
+    networks:
+      - core
+
+secrets:
+  POSTGRES_USER:
+    file: /opt/dragoncave/secrets/POSTGRES_USER
+    uid: "999"
+    gid: "999"
+    mode: 0440
+  POSTGRES_PASSWORD:
+    file: /opt/dragoncave/secrets/POSTGRES_PASSWORD
+    uid: "999"
+    gid: "999"
+    mode: 0440
+  MARIADB_USER:
+    file: /opt/dragoncave/secrets/MARIADB_USER
+    uid: "999"
+    gid: "999"
+    mode: 0440
+  MARIADB_PASS:
+    file: /opt/dragoncave/secrets/MARIADB_PASS
+    uid: "999"
+    gid: "999"
+    mode: 0440
+  MARIADB_ROOT_PASS:
+    file: /opt/dragoncave/secrets/MARIADB_ROOT_PASS
+    uid: "999"
+    gid: "999"
+    mode: 0440
+
+networks:
+  core:
+    external: true

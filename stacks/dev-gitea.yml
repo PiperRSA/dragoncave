@@ -1,0 +1,39 @@
+x-deploy-defaults: &deploy_defaults
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+x-labels-common: &labels_common
+  traefik.enable: "true"
+  traefik.docker.network: "edge"
+  traefik.http.middlewares.chain-default.chain.middlewares: "security-headers@file,gzip-compress@file"
+  com.centurylinklabs.watchtower.enable: "false"
+
+services:
+  gitea:
+    image: gitea/gitea:1.22
+    <<: *deploy_defaults
+    user: "1000:1000"
+    environment:
+      USER_UID: 1000
+      USER_GID: 1000
+    volumes:
+      - /opt/dragoncave/data/gitea:/data
+    networks:
+      - edge
+      - core
+    labels:
+      <<: *labels_common
+      traefik.http.routers.gitea.rule: "Host(`git.hexwyrm.com`)"
+      traefik.http.routers.gitea.entrypoints: "websecure"
+      traefik.http.routers.gitea.tls: "true"
+      traefik.http.routers.gitea.middlewares: "chain-default@file"
+
+networks:
+  edge:
+    external: true
+  core:
+    external: true

@@ -1,33 +1,77 @@
-name: Preflight Diagnostics
+name: Preflight
 
 on:
   push:
     branches:
-      - main
+      - feat/phase-structure-v1
   pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
 
 jobs:
-  preflight:
+  lint:
     runs-on: ubuntu-latest
-
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
-
-      - name: Install lint dependencies
+        uses: actions/checkout@v4
+      - name: Install tooling
         env:
           HADOLINT_VERSION: "2.12.0"
         run: |
           sudo apt-get update
-          sudo apt-get install -y shellcheck yamllint
+          sudo apt-get install -y shellcheck yamllint jq
           curl -sSL \
             "https://github.com/hadolint/hadolint/releases/download/v${HADOLINT_VERSION}/hadolint-Linux-x86_64" \
             -o hadolint
           sudo install -m 0755 hadolint /usr/local/bin/hadolint
           rm -f hadolint
-
       - name: Run preflight diagnostics
         run: make preflight
+
+  compose-config:
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        stack:
+          - stacks/dns-pihole.yml
+          - stacks/obs-monitoring.yml
+          - stacks/obs-logs.yml
+          - stacks/flows-node-red.yml
+          - stacks/jobs-n8n.yml
+          - stacks/search-meili.yml
+          - stacks/iot-home-assistant.yml
+          - stacks/files-nextcloud.yml
+          - stacks/docs-paperless.yml
+          - stacks/photos-immich.yml
+          - stacks/dev-gitea.yml
+          - stacks/infra-minio.yml
+          - stacks/data-services.yml
+          - stacks/misc-vaultwarden.yml
+          - stacks/sec-docker-socket-proxy.yml
+          - stacks/tunnel-cloudflared.yml
+          - stacks/obs-watchtower.yml
+          - stacks/edge-traefik.yml
+          - stacks/portainer.yml
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Validate ${{ matrix.stack }}
+        run: docker compose -f "${{ matrix.stack }}" config
+
+  smoke:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Basic smoke tests (non-fatal)
+        run: |
+          if [ -x scripts/smoke-tests.sh ]; then
+            scripts/smoke-tests.sh || true
+          else
+            echo "smoke-tests.sh missing; skipping"
+          fi

@@ -1,0 +1,36 @@
+x-deploy-secure: &deploy_secure
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+x-labels-common: &labels_common
+  traefik.enable: "true"
+  traefik.docker.network: "edge"
+  traefik.http.middlewares.chain-default.chain.middlewares: "security-headers@file,gzip-compress@file"
+  com.centurylinklabs.watchtower.enable: "false"
+
+services:
+  APPNAME:
+    image: REPO/IMAGE:TAG
+    <<: *deploy_secure
+    user: "1000:1000"
+    environment: []
+    volumes: []
+    networks:
+      - edge
+      - core
+    labels:
+      <<: *labels_common
+      traefik.http.routers.APPNAME.rule: "Host(`APPNAME.hexwyrm.com`)"
+      traefik.http.routers.APPNAME.entrypoints: "websecure"
+      traefik.http.routers.APPNAME.tls: "true"
+      traefik.http.routers.APPNAME.middlewares: "chain-default@file"
+
+networks:
+  edge:
+    external: true
+  core:
+    external: true

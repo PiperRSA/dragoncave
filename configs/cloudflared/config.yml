@@ -22,4 +22,4 @@ ingress:
       httpHostHeader: whoami.hexwyrm.com
 
   # Catch-all (must be last)
-  - service: http_status:404
+  - service: http://traefik:80

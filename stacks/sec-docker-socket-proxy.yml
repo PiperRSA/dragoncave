@@ -2,6 +2,7 @@ services:
   dprox:
     image: tecnativa/docker-socket-proxy:latest
     restart: unless-stopped
+    container_name: dprox
     networks:
       - core
     environment:

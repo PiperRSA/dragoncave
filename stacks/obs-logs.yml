@@ -1,0 +1,72 @@
+x-deploy-defaults: &deploy_defaults
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+x-labels-common: &labels_common
+  traefik.enable: "true"
+  traefik.docker.network: "edge"
+  traefik.http.middlewares.chain-default.chain.middlewares: "security-headers@file,gzip-compress@file"
+  com.centurylinklabs.watchtower.enable: "false"
+
+services:
+  loki:
+    image: grafana/loki:2.9.8
+    <<: *deploy_defaults
+    user: "1000:1000"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - /opt/dragoncave/configs/loki:/etc/loki
+      - /opt/dragoncave/data/loki:/loki
+    networks:
+      - core
+
+  promtail:
+    image: grafana/promtail:2.9.8
+    <<: *deploy_defaults
+    user: "1000:1000"
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - /opt/dragoncave/configs/promtail:/etc/promtail
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/log:/var/log:ro
+    networks:
+      - core
+    environment:
+      DOCKER_HOST: tcp://dprox:2375
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+  grafana:
+    image: grafana/grafana:10.4.6
+    <<: *deploy_defaults
+    user: "1000:1000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/GRAFANA_ADMIN_PASS
+    volumes:
+      - /opt/dragoncave/configs/grafana:/var/lib/grafana
+    networks:
+      - edge
+      - core
+    labels:
+      <<: *labels_common
+      traefik.http.routers.grafana.rule: "Host(`obs.hexwyrm.com`)"
+      traefik.http.routers.grafana.entrypoints: "websecure"
+      traefik.http.routers.grafana.tls: "true"
+      traefik.http.routers.grafana.middlewares: "lan-ipwhitelist@file,chain-default@file"
+
+secrets:
+  GRAFANA_ADMIN_PASS:
+    file: /opt/dragoncave/secrets/GRAFANA_ADMIN_PASS
+    uid: "1000"
+    gid: "1000"
+    mode: 0440
+
+networks:
+  edge:
+    external: true
+  core:
+    external: true

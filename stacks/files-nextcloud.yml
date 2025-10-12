@@ -1,0 +1,68 @@
+x-deploy-defaults: &deploy_defaults
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+x-labels-common: &labels_common
+  traefik.enable: "true"
+  traefik.docker.network: "edge"
+  traefik.http.middlewares.chain-default.chain.middlewares: "security-headers@file,gzip-compress@file"
+  com.centurylinklabs.watchtower.enable: "false"
+
+services:
+  nextcloud:
+    image: nextcloud:stable
+    <<: *deploy_defaults
+    user: "1000:1000"
+    depends_on:
+      - postgres
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: nextcloud
+      POSTGRES_USER_FILE: /run/secrets/NEXTCLOUD_DB_USER
+      POSTGRES_PASSWORD_FILE: /run/secrets/NEXTCLOUD_DB_PASS
+    volumes:
+      - /opt/dragoncave/data/nextcloud:/var/www/html
+    networks:
+      - edge
+      - core
+    labels:
+      <<: *labels_common
+      traefik.http.routers.nextcloud.rule: "Host(`cloud.hexwyrm.com`)"
+      traefik.http.routers.nextcloud.entrypoints: "websecure"
+      traefik.http.routers.nextcloud.tls: "true"
+      traefik.http.routers.nextcloud.middlewares: "chain-default@file"
+
+  postgres:
+    image: postgres:16-alpine
+    <<: *deploy_defaults
+    user: "999:999"
+    environment:
+      POSTGRES_DB: nextcloud
+      POSTGRES_USER_FILE: /run/secrets/NEXTCLOUD_DB_USER
+      POSTGRES_PASSWORD_FILE: /run/secrets/NEXTCLOUD_DB_PASS
+    volumes:
+      - /opt/dragoncave/data/postgres/nextcloud:/var/lib/postgresql/data
+    networks:
+      - core
+
+secrets:
+  NEXTCLOUD_DB_USER:
+    file: /opt/dragoncave/secrets/NEXTCLOUD_DB_USER
+    uid: "999"
+    gid: "999"
+    mode: 0440
+  NEXTCLOUD_DB_PASS:
+    file: /opt/dragoncave/secrets/NEXTCLOUD_DB_PASS
+    uid: "999"
+    gid: "999"
+    mode: 0440
+
+networks:
+  edge:
+    external: true
+  core:
+    external: true

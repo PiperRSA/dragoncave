@@ -1,0 +1,39 @@
+x-deploy-defaults: &deploy_defaults
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+x-labels-common: &labels_common
+  traefik.enable: "true"
+  traefik.docker.network: "edge"
+  traefik.http.middlewares.chain-default.chain.middlewares: "security-headers@file,gzip-compress@file"
+  com.centurylinklabs.watchtower.enable: "false"
+
+services:
+  node-red:
+    image: nodered/node-red:latest
+    <<: *deploy_defaults
+    user: "1000:1000"
+    environment:
+      TZ: Africa/Johannesburg
+    volumes:
+      - /opt/dragoncave/configs/node-red:/data
+    networks:
+      - edge
+      - core
+    labels:
+      <<: *labels_common
+      traefik.http.routers.nodered.rule: "Host(`flows.hexwyrm.com`)"
+      traefik.http.routers.nodered.entrypoints: "websecure"
+      traefik.http.routers.nodered.tls: "true"
+      traefik.http.routers.nodered.middlewares: "chain-default@file"
+      com.centurylinklabs.watchtower.enable: "true"
+
+networks:
+  edge:
+    external: true
+  core:
+    external: true

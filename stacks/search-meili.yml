@@ -1,0 +1,47 @@
+x-deploy-defaults: &deploy_defaults
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+x-labels-common: &labels_common
+  traefik.enable: "true"
+  traefik.docker.network: "edge"
+  traefik.http.middlewares.chain-default.chain.middlewares: "security-headers@file,gzip-compress@file"
+  com.centurylinklabs.watchtower.enable: "false"
+
+services:
+  meili:
+    image: getmeili/meilisearch:latest
+    <<: *deploy_defaults
+    user: "1000:1000"
+    environment:
+      MEILI_ENV: production
+      MEILI_MASTER_KEY_FILE: /run/secrets/MEILI_MASTER_KEY
+    volumes:
+      - /opt/dragoncave/data/meili:/meili_data
+    networks:
+      - edge
+      - core
+    labels:
+      <<: *labels_common
+      traefik.http.routers.meili.rule: "Host(`search.hexwyrm.com`)"
+      traefik.http.routers.meili.entrypoints: "websecure"
+      traefik.http.routers.meili.tls: "true"
+      traefik.http.routers.meili.middlewares: "chain-default@file"
+      com.centurylinklabs.watchtower.enable: "true"
+
+secrets:
+  MEILI_MASTER_KEY:
+    file: /opt/dragoncave/secrets/MEILI_MASTER_KEY
+    uid: "1000"
+    gid: "1000"
+    mode: 0440
+
+networks:
+  edge:
+    external: true
+  core:
+    external: true

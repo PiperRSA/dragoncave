@@ -1,9 +1,5 @@
 extends: default
 
-ignore: |
-  configs/
-  stacks/
-
 rules:
   line-length:
     max: 140

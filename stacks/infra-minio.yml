@@ -1,0 +1,52 @@
+x-deploy-defaults: &deploy_defaults
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+x-labels-common: &labels_common
+  traefik.enable: "true"
+  traefik.docker.network: "edge"
+  traefik.http.middlewares.chain-default.chain.middlewares: "security-headers@file,gzip-compress@file"
+  com.centurylinklabs.watchtower.enable: "false"
+
+services:
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-01-11T00-00-00Z
+    <<: *deploy_defaults
+    user: "1000:1000"
+    environment:
+      MINIO_ROOT_USER_FILE: /run/secrets/MINIO_ROOT_USER
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/MINIO_ROOT_PASS
+    command: server /data --console-address ":9001"
+    volumes:
+      - /opt/dragoncave/data/minio:/data
+    networks:
+      - edge
+      - core
+    labels:
+      <<: *labels_common
+      traefik.http.routers.minio.rule: "Host(`s3.hexwyrm.com`)"
+      traefik.http.routers.minio.entrypoints: "websecure"
+      traefik.http.routers.minio.tls: "true"
+      traefik.http.routers.minio.middlewares: "lan-ipwhitelist@file,basic-auth@file,chain-default@file"
+
+secrets:
+  MINIO_ROOT_USER:
+    file: /opt/dragoncave/secrets/MINIO_ROOT_USER
+    uid: "1000"
+    gid: "1000"
+    mode: 0440
+  MINIO_ROOT_PASS:
+    file: /opt/dragoncave/secrets/MINIO_ROOT_PASS
+    uid: "1000"
+    gid: "1000"
+    mode: 0440
+
+networks:
+  edge:
+    external: true
+  core:
+    external: true

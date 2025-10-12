@@ -1,0 +1,54 @@
+x-deploy-defaults: &deploy_defaults
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+x-labels-common: &labels_common
+  traefik.enable: "true"
+  traefik.docker.network: "edge"
+  traefik.http.middlewares.chain-default.chain.middlewares: "security-headers@file,gzip-compress@file"
+  com.centurylinklabs.watchtower.enable: "false"
+
+services:
+  pihole:
+    image: pihole/pihole:latest
+    <<: *deploy_defaults
+    user: "0:0"
+    hostname: pihole
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    environment:
+      TZ: Africa/Johannesburg
+      WEBPASSWORD_FILE: /run/secrets/PIHOLE_ADMIN_PASS
+    volumes:
+      - /opt/dragoncave/configs/pihole/etc-pihole:/etc/pihole
+      - /opt/dragoncave/configs/pihole/etc-dnsmasq.d:/etc/dnsmasq.d
+    networks:
+      - dns
+      - edge
+    labels:
+      <<: *labels_common
+      traefik.http.routers.pihole.rule: "Host(`pihole.hexwyrm.com`)"
+      traefik.http.routers.pihole.entrypoints: "websecure"
+      traefik.http.routers.pihole.tls: "true"
+      traefik.http.routers.pihole.middlewares: "lan-ipwhitelist@file,basic-auth@file,chain-default@file"
+    cap_add:
+      - NET_ADMIN
+      - NET_BIND_SERVICE
+
+secrets:
+  PIHOLE_ADMIN_PASS:
+    file: /opt/dragoncave/secrets/PIHOLE_ADMIN_PASS
+    uid: "0"
+    gid: "0"
+    mode: 0400
+
+networks:
+  edge:
+    external: true
+  dns:
+    external: true

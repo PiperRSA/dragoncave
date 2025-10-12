@@ -1,0 +1,56 @@
+x-deploy-defaults: &deploy_defaults
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+x-labels-common: &labels_common
+  traefik.enable: "true"
+  traefik.docker.network: "edge"
+  traefik.http.middlewares.chain-default.chain.middlewares: "security-headers@file,gzip-compress@file"
+  com.centurylinklabs.watchtower.enable: "false"
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    <<: *deploy_defaults
+    user: "1000:1000"
+    environment:
+      N8N_HOST: workflows.hexwyrm.com
+      N8N_PORT: 5678
+      N8N_PROTOCOL: https
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER_FILE: /run/secrets/N8N_USER
+      N8N_BASIC_AUTH_PASSWORD_FILE: /run/secrets/N8N_PASS
+    volumes:
+      - /opt/dragoncave/configs/n8n:/home/node/.n8n
+    networks:
+      - edge
+      - core
+    labels:
+      <<: *labels_common
+      traefik.http.routers.n8n.rule: "Host(`workflows.hexwyrm.com`)"
+      traefik.http.routers.n8n.entrypoints: "websecure"
+      traefik.http.routers.n8n.tls: "true"
+      traefik.http.routers.n8n.middlewares: "chain-default@file"
+      com.centurylinklabs.watchtower.enable: "true"
+
+secrets:
+  N8N_USER:
+    file: /opt/dragoncave/secrets/N8N_USER
+    uid: "1000"
+    gid: "1000"
+    mode: 0440
+  N8N_PASS:
+    file: /opt/dragoncave/secrets/N8N_PASS
+    uid: "1000"
+    gid: "1000"
+    mode: 0440
+
+networks:
+  edge:
+    external: true
+  core:
+    external: true

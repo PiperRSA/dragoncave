@@ -37,6 +37,11 @@ configs/traefik/*.crt
 configs/cloudflared/*.json
 configs/cloudflared/cert.pem
 
+# Dragoncave local overrides
+*.env
+*.local.yml
+*.override.yml
+scripts/*.log
 # cloudflared credentials (do not commit)
 configs/cloudflared/*.json
 configs/cloudflared/cert.pem

@@ -2,4 +2,3 @@ tls:
   certificates:
     - certFile: /etc/traefik/dynamic/certs/hexwyrm-wildcard.crt
       keyFile: /etc/traefik/dynamic/certs/hexwyrm-wildcard.key
-

@@ -1,0 +1,47 @@
+x-deploy-defaults: &deploy_defaults
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+x-labels-common: &labels_common
+  traefik.enable: "true"
+  traefik.docker.network: "edge"
+  traefik.http.middlewares.chain-default.chain.middlewares: "security-headers@file,gzip-compress@file"
+  com.centurylinklabs.watchtower.enable: "false"
+
+services:
+  vaultwarden:
+    image: vaultwarden/server:latest
+    <<: *deploy_defaults
+    user: "1000:1000"
+    environment:
+      ROCKET_PORT: 8080
+      ROCKET_WORKERS: 4
+      ADMIN_TOKEN_FILE: /run/secrets/VAULTWARDEN_ADMIN_TOKEN
+    volumes:
+      - /opt/dragoncave/data/vaultwarden:/data
+    networks:
+      - edge
+      - core
+    labels:
+      <<: *labels_common
+      traefik.http.routers.vaultwarden.rule: "Host(`vault.hexwyrm.com`)"
+      traefik.http.routers.vaultwarden.entrypoints: "websecure"
+      traefik.http.routers.vaultwarden.tls: "true"
+      traefik.http.routers.vaultwarden.middlewares: "lan-ipwhitelist@file,basic-auth@file,chain-default@file"
+
+secrets:
+  VAULTWARDEN_ADMIN_TOKEN:
+    file: /opt/dragoncave/secrets/VAULTWARDEN_ADMIN_TOKEN
+    uid: "1000"
+    gid: "1000"
+    mode: 0400
+
+networks:
+  edge:
+    external: true
+  core:
+    external: true

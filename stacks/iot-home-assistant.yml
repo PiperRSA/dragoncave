@@ -1,0 +1,87 @@
+x-deploy-defaults: &deploy_defaults
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+x-labels-common: &labels_common
+  traefik.enable: "true"
+  traefik.docker.network: "edge"
+  traefik.http.middlewares.chain-default.chain.middlewares: "security-headers@file,gzip-compress@file"
+  com.centurylinklabs.watchtower.enable: "false"
+
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    <<: *deploy_defaults
+    user: "1000:1000"
+    volumes:
+      - /opt/dragoncave/configs/homeassistant:/config
+    networks:
+      - edge
+      - core
+    labels:
+      <<: *labels_common
+      traefik.http.routers.hass.rule: "Host(`home.hexwyrm.com`)"
+      traefik.http.routers.hass.entrypoints: "websecure"
+      traefik.http.routers.hass.tls: "true"
+      traefik.http.routers.hass.middlewares: "lan-ipwhitelist@file,chain-default@file"
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    <<: *deploy_defaults
+    user: "1000:1000"
+    volumes:
+      - /opt/dragoncave/configs/mosquitto:/mosquitto/config
+      - /opt/dragoncave/data/mosquitto:/mosquitto/data
+    networks:
+      - core
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+  influxdb:
+    image: influxdb:2
+    <<: *deploy_defaults
+    user: "1000:1000"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD_FILE: /run/secrets/INFLUXDB_ADMIN_PASS
+      DOCKER_INFLUXDB_INIT_ORG: dragoncave
+      DOCKER_INFLUXDB_INIT_BUCKET: telemetry
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN_FILE: /run/secrets/INFLUXDB_ADMIN_TOKEN
+    volumes:
+      - /opt/dragoncave/data/influxdb:/var/lib/influxdb2
+    networks:
+      - core
+
+  telegraf:
+    image: telegraf:1.29-alpine
+    <<: *deploy_defaults
+    user: "1000:1000"
+    environment:
+      INFLUX_TOKEN_FILE: /run/secrets/INFLUXDB_ADMIN_TOKEN
+    volumes:
+      - /opt/dragoncave/configs/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    networks:
+      - core
+
+secrets:
+  INFLUXDB_ADMIN_PASS:
+    file: /opt/dragoncave/secrets/INFLUXDB_ADMIN_PASS
+    uid: "1000"
+    gid: "1000"
+    mode: 0440
+  INFLUXDB_ADMIN_TOKEN:
+    file: /opt/dragoncave/secrets/INFLUXDB_ADMIN_TOKEN
+    uid: "1000"
+    gid: "1000"
+    mode: 0440
+
+networks:
+  edge:
+    external: true
+  core:
+    external: true

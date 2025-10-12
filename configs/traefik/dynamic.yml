@@ -4,9 +4,30 @@ http:
       ipWhiteList:
         sourceRange:
           - 192.168.68.0/24
-    traefik-auth:
+          - 10.0.0.0/8
+          - 172.16.0.0/12
+          - 127.0.0.1/32
+    basic-auth:
       basicAuth:
         usersFile: /run/secrets/traefik_basicauth
+    security-headers:
+      headers:
+        stsSeconds: 63072000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "no-referrer-when-downgrade"
+        customResponseHeaders:
+          Server: ""
+    gzip-compress:
+      compress: {}
+    chain-default:
+      chain:
+        middlewares:
+          - security-headers@file
+          - gzip-compress@file
     traefik-redir:
       redirectRegex:
         regex: "^https?://([^/]+)/?$"
@@ -17,7 +38,7 @@ http:
     traefik-api:
       rule: "Host(`traefik.hexwyrm.com`) && PathPrefix(`/api`)"
       entryPoints: ["websecure"]
-      middlewares: ["lan-ipwhitelist","traefik-auth"]
+      middlewares: ["lan-ipwhitelist", "basic-auth", "chain-default"]
       service: "api@internal"
       tls:
         certResolver: "cloudflare"
@@ -25,7 +46,7 @@ http:
     traefik-root:
       rule: "Host(`traefik.hexwyrm.com`) && Path(`/`)"
       entryPoints: ["websecure"]
-      middlewares: ["lan-ipwhitelist","traefik-auth","traefik-redir"]
+      middlewares: ["lan-ipwhitelist", "basic-auth", "traefik-redir", "chain-default"]
       service: "noop@internal"
       tls:
         certResolver: "cloudflare"
@@ -33,7 +54,7 @@ http:
     traefik-ui:
       rule: "Host(`traefik.hexwyrm.com`) && PathPrefix(`/dashboard`)"
       entryPoints: ["websecure"]
-      middlewares: ["lan-ipwhitelist","traefik-auth"]
+      middlewares: ["lan-ipwhitelist", "basic-auth", "chain-default"]
       service: "dashboard@internal"
       tls:
         certResolver: "cloudflare"

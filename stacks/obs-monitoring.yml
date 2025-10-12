@@ -1,0 +1,55 @@
+x-deploy-defaults: &deploy_defaults
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+x-labels-common: &labels_common
+  traefik.enable: "true"
+  traefik.docker.network: "edge"
+  traefik.http.middlewares.chain-default.chain.middlewares: "security-headers@file,gzip-compress@file"
+  com.centurylinklabs.watchtower.enable: "false"
+
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    <<: *deploy_defaults
+    user: "1000:1000"
+    volumes:
+      - /opt/dragoncave/configs/kuma:/app/data
+    networks:
+      - edge
+      - core
+    labels:
+      <<: *labels_common
+      traefik.http.routers.kuma.rule: "Host(`uptime.hexwyrm.com`)"
+      traefik.http.routers.kuma.entrypoints: "websecure"
+      traefik.http.routers.kuma.tls: "true"
+      traefik.http.routers.kuma.middlewares: "lan-ipwhitelist@file,chain-default@file"
+      com.centurylinklabs.watchtower.enable: "true"
+
+  dozzle:
+    image: amir20/dozzle:latest
+    <<: *deploy_defaults
+    user: "1000:1000"
+    environment:
+      DOZZLE_LEVEL: info
+      DOCKER_HOST: tcp://dprox:2375
+    networks:
+      - edge
+      - core
+    labels:
+      <<: *labels_common
+      traefik.http.routers.dozzle.rule: "Host(`logs.hexwyrm.com`)"
+      traefik.http.routers.dozzle.entrypoints: "websecure"
+      traefik.http.routers.dozzle.tls: "true"
+      traefik.http.routers.dozzle.middlewares: "lan-ipwhitelist@file,basic-auth@file,chain-default@file"
+      com.centurylinklabs.watchtower.enable: "true"
+
+networks:
+  edge:
+    external: true
+  core:
+    external: true

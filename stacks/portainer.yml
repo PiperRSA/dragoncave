@@ -24,7 +24,7 @@ services:
       - "traefik.http.middlewares.portainer-headers.headers.customrequestheaders.X-Forwarded-Host=portainer.${PUBLIC_DOMAIN}"
       - "traefik.http.middlewares.portainer-headers.headers.customrequestheaders.X-Forwarded-Port=443"
       - "traefik.http.middlewares.portainer-auth.basicauth.usersFile=/run/secrets/traefik_basicauth"
-      - "traefik.http.routers.portainer.middlewares=lan-ipwhitelist@file,portainer-auth@docker,portainer-headers@docker"
+      - "traefik.http.routers.portainer.middlewares=lan-ipwhitelist@file,portainer-auth@docker,portainer-headers@docker,chain-default@file"
       - "com.centurylinklabs.watchtower.enable=false"
 
 networks:

@@ -1,0 +1,80 @@
+x-deploy-defaults: &deploy_defaults
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+x-labels-common: &labels_common
+  traefik.enable: "true"
+  traefik.docker.network: "edge"
+  traefik.http.middlewares.chain-default.chain.middlewares: "security-headers@file,gzip-compress@file"
+  com.centurylinklabs.watchtower.enable: "false"
+
+services:
+  paperless:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    <<: *deploy_defaults
+    user: "1000:1000"
+    depends_on:
+      - redis
+      - postgres
+    environment:
+      PAPERLESS_REDIS: redis://redis:6379
+      PAPERLESS_DBHOST: postgres
+      PAPERLESS_DBNAME: paperless
+      PAPERLESS_DBUSER_FILE: /run/secrets/PAPERLESS_DB_USER
+      PAPERLESS_DBPASS_FILE: /run/secrets/PAPERLESS_DB_PASS
+    volumes:
+      - /opt/dragoncave/data/paperless/data:/usr/src/paperless/data
+      - /opt/dragoncave/data/paperless/media:/usr/src/paperless/media
+      - /opt/dragoncave/data/paperless/consume:/usr/src/paperless/consume
+    networks:
+      - edge
+      - core
+    labels:
+      <<: *labels_common
+      traefik.http.routers.paperless.rule: "Host(`docs.hexwyrm.com`)"
+      traefik.http.routers.paperless.entrypoints: "websecure"
+      traefik.http.routers.paperless.tls: "true"
+      traefik.http.routers.paperless.middlewares: "chain-default@file"
+      com.centurylinklabs.watchtower.enable: "true"
+
+  redis:
+    image: redis:7-alpine
+    <<: *deploy_defaults
+    user: "1000:1000"
+    networks:
+      - core
+
+  postgres:
+    image: postgres:16-alpine
+    <<: *deploy_defaults
+    user: "999:999"
+    environment:
+      POSTGRES_DB: paperless
+      POSTGRES_USER_FILE: /run/secrets/PAPERLESS_DB_USER
+      POSTGRES_PASSWORD_FILE: /run/secrets/PAPERLESS_DB_PASS
+    volumes:
+      - /opt/dragoncave/data/postgres/paperless:/var/lib/postgresql/data
+    networks:
+      - core
+
+secrets:
+  PAPERLESS_DB_USER:
+    file: /opt/dragoncave/secrets/PAPERLESS_DB_USER
+    uid: "999"
+    gid: "999"
+    mode: 0440
+  PAPERLESS_DB_PASS:
+    file: /opt/dragoncave/secrets/PAPERLESS_DB_PASS
+    uid: "999"
+    gid: "999"
+    mode: 0440
+
+networks:
+  edge:
+    external: true
+  core:
+    external: true
