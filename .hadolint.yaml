@@ -1,0 +1,4 @@
+format: tty
+ignored:
+  - DL3008  # Pin packages when reasonable but allow rolling security updates
+  - DL3018  # Allow using apk add without --no-cache for small base images

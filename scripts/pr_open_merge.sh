@@ -23,24 +23,41 @@ if ! need_token; then echo "ERROR: Set GITHUB_TOKEN for API fallback"; exit 1; f
 owner="${REPO_SLUG%%/*}"
 PRS="$(curl -sS -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" \
   "https://api.github.com/repos/$REPO_SLUG/pulls?state=open&head=${owner}:${PR_BRANCH}&base=main")"
-PR_NUM="$(printf %s "$PRS" | python3 - <<'PY'
-import sys,json
-d=json.load(sys.stdin)
-print(d[0]["number"] if d else "")
+PR_NUM="$(
+  PRS_JSON="$PRS" python3 - <<'PY'
+import json
+import os
+
+payload = os.environ.get("PRS_JSON") or "[]"
+data = json.loads(payload)
+print(data[0]["number"] if data else "")
 PY
 )"
 if [ -z "$PR_NUM" ]; then
-  PR_NUM="$(curl -sS -X POST -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" \
-    "https://api.github.com/repos/$REPO_SLUG/pulls" \
-    -d "$(python3 - <<'PY'
-import json,os
-print(json.dumps({"title":os.environ.get("TITLE"),"head":os.environ.get("PR_BRANCH"),"base":"main","draft":False}))
-PY
-)" | python3 - <<'PY'
-import sys,json
-print(json.load(sys.stdin).get("number",""))
+  CREATE_PAYLOAD="$(python3 - <<'PY'
+import json
+import os
+
+print(json.dumps({
+    "title": os.environ.get("TITLE"),
+    "head": os.environ.get("PR_BRANCH"),
+    "base": "main",
+    "draft": False
+}))
 PY
 )"
+  CREATE_RESP="$(curl -sS -X POST -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" \
+    "https://api.github.com/repos/$REPO_SLUG/pulls" \
+    -d "$CREATE_PAYLOAD")"
+  PR_NUM="$(
+    RESPONSE_JSON="$CREATE_RESP" python3 - <<'PY'
+import json
+import os
+
+data = json.loads(os.environ.get("RESPONSE_JSON") or "{}")
+print(data.get("number", ""))
+PY
+  )"
 fi
 [ -n "$PR_NUM" ] || { echo "ERROR: could not open PR"; exit 1; }
 echo "PR: https://github.com/$REPO_SLUG/pull/$PR_NUM"
