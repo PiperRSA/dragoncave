@@ -11,6 +11,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
+      - /opt/dragoncave/secrets/traefik_basicauth.htpasswd:/run/secrets/traefik_basicauth:ro
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=edge"
@@ -22,7 +23,9 @@ services:
       - "traefik.http.middlewares.portainer-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
       - "traefik.http.middlewares.portainer-headers.headers.customrequestheaders.X-Forwarded-Host=portainer.${PUBLIC_DOMAIN}"
       - "traefik.http.middlewares.portainer-headers.headers.customrequestheaders.X-Forwarded-Port=443"
-      - "traefik.http.routers.portainer.middlewares=portainer-headers@docker"
+      - "traefik.http.middlewares.portainer-auth.basicauth.usersFile=/run/secrets/traefik_basicauth"
+      - "traefik.http.routers.portainer.middlewares=lan-ipwhitelist@file,portainer-auth@docker,portainer-headers@docker"
+      - "com.centurylinklabs.watchtower.enable=false"
 
 networks:
   edge:

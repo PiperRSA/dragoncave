@@ -1,0 +1,27 @@
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    user: "1000:1000"
+    read_only: true
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    command: tunnel --no-autoupdate run --token /run/secrets/CF_TUNNEL_TOKEN
+    networks:
+      - edge
+    secrets:
+      - CF_TUNNEL_TOKEN
+    volumes:
+      - /opt/dragoncave/configs/cloudflared:/etc/cloudflared:ro
+
+networks:
+  edge:
+    external: true
+
+secrets:
+  CF_TUNNEL_TOKEN:
+    file: /opt/dragoncave/secrets/CF_TUNNEL_TOKEN

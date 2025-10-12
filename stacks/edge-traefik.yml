@@ -2,13 +2,16 @@ services:
   edge-traefik:
     image: traefik:v3.1
     container_name: edge-traefik
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
     command:
       - --api.dashboard=true
-      - --log.level=DEBUG
+      - --log.level=INFO
       # Providers
       - --providers.docker=true
+      - --providers.docker.endpoint=tcp://dprox:2375
+      - --providers.docker.network=edge
       - --providers.docker.exposedbydefault=false
-      - --providers.docker.endpoint=unix:///var/run/docker.sock
       - --providers.file.directory=/etc/traefik/dynamic
       - --providers.file.watch=true
       # Entrypoints
@@ -29,8 +32,28 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Docker socket now proxied via dprox on the core network
       - /opt/dragoncave/configs/traefik:/etc/traefik/dynamic:ro
       - /opt/dragoncave/data/letsencrypt:/letsencrypt
       - /opt/dragoncave/secrets/traefik_basicauth.htpasswd:/run/secrets/traefik_basicauth:ro
+    networks:
+      edge:
+        aliases:
+          - traefik
+      core:
+        aliases:
+          - traefik
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
+
+networks:
+  edge:
+    external: true
+  core:
+    external: true

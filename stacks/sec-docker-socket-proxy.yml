@@ -1,0 +1,25 @@
+services:
+  dprox:
+    image: tecnativa/docker-socket-proxy:latest
+    restart: unless-stopped
+    networks:
+      - core
+    environment:
+      CONTAINERS: 1
+      SERVICES: 1
+      TASKS: 1
+      NODES: 0
+      AUTH: 0
+      SECRETS: 0
+      POST: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  core:
+    external: true

@@ -1,5 +1,9 @@
 http:
   middlewares:
+    lan-ipwhitelist:
+      ipWhiteList:
+        sourceRange:
+          - 192.168.68.0/24
     traefik-auth:
       basicAuth:
         usersFile: /run/secrets/traefik_basicauth
@@ -13,7 +17,7 @@ http:
     traefik-api:
       rule: "Host(`traefik.hexwyrm.com`) && PathPrefix(`/api`)"
       entryPoints: ["websecure"]
-      middlewares: ["traefik-auth"]
+      middlewares: ["lan-ipwhitelist","traefik-auth"]
       service: "api@internal"
       tls:
         certResolver: "cloudflare"
@@ -21,7 +25,7 @@ http:
     traefik-root:
       rule: "Host(`traefik.hexwyrm.com`) && Path(`/`)"
       entryPoints: ["websecure"]
-      middlewares: ["traefik-auth","traefik-redir"]
+      middlewares: ["lan-ipwhitelist","traefik-auth","traefik-redir"]
       service: "noop@internal"
       tls:
         certResolver: "cloudflare"
@@ -29,7 +33,7 @@ http:
     traefik-ui:
       rule: "Host(`traefik.hexwyrm.com`) && PathPrefix(`/dashboard`)"
       entryPoints: ["websecure"]
-      middlewares: ["traefik-auth"]
+      middlewares: ["lan-ipwhitelist","traefik-auth"]
       service: "dashboard@internal"
       tls:
         certResolver: "cloudflare"
