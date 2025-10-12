@@ -1,7 +1,10 @@
-192.168.68.145 whoami.hexwyrm.com
-192.168.68.145 portainer.hexwyrm.com
 192.168.68.145 traefik.hexwyrm.com
+192.168.68.145 portainer.hexwyrm.com
+192.168.68.145 pihole.hexwyrm.com
+192.168.68.145 flows.hexwyrm.com
+192.168.68.145 n8n.hexwyrm.com
+192.168.68.145 search.hexwyrm.com
+192.168.68.145 command.hexwyrm.com
 192.168.68.145 obs.hexwyrm.com
 192.168.68.145 logs.hexwyrm.com
-192.168.68.145 obs.hexwyrm.com
-192.168.68.145 logs.hexwyrm.com
+192.168.68.145 whoami.hexwyrm.com

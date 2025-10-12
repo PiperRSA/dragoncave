@@ -2,20 +2,20 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared
-    user: "0:0"
     restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
-    networks:
-      - edge
-    command: tunnel --config /etc/cloudflared/config.yml run
-    volumes:
-      - /opt/dragoncave/configs/cloudflared:/etc/cloudflared:ro
+    networks: [edge]
+    command: tunnel --no-autoupdate run --token /run/secrets/CF_TUNNEL_TOKEN
     healthcheck:
-      test: ["CMD", "cloudflared", "--version"]
-      interval: 30s
+      test: ["CMD", "cloudflared", "version"]
+      interval: 60s
       timeout: 5s
-      retries: 3
+      retries: 5
+    secrets:
+      - CF_TUNNEL_TOKEN
+
+secrets:
+  CF_TUNNEL_TOKEN:
+    file: /opt/dragoncave/secrets/CF_TUNNEL_TOKEN
 
 networks:
   edge:

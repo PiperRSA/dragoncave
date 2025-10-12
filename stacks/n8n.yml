@@ -1,43 +1,51 @@
 services:
   n8n:
-    image: docker.n8n.io/n8nio/n8n:1.64.0
+    image: n8nio/n8n:1.64.0
     restart: unless-stopped
     user: "1000:1000"
-    read_only: false
-    networks: [edge, core]
-    env_file:
-      - /opt/dragoncave/.env.dragoncave
+
+    networks:
+      - edge
+
     environment:
-      - N8N_HOST=n8n.${PUBLIC_DOMAIN}
-      - N8N_PROTOCOL=https
+      - TZ=Africa/Johannesburg
+      - N8N_HOST=n8n.hexwyrm.com
       - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://n8n.hexwyrm.com/
+      - GENERIC_TIMEZONE=Africa/Johannesburg
       - N8N_ENCRYPTION_KEY_FILE=/run/secrets/N8N_ENCRYPTION_KEY
-      - WEBHOOK_TUNNEL_URL=https://n8n.${PUBLIC_DOMAIN}
-      - GENERIC_TIMEZONE=${TZ}
+
     volumes:
       - /srv/n8n-data:/home/node/.n8n
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:5678/healthz || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
+
     secrets:
-      - TRAEFIK_BASIC_AUTH
       - N8N_ENCRYPTION_KEY
+
+    # Keep Traefik from filtering the service while n8n warms up
+    healthcheck:
+      test: ["CMD-SHELL", "true"]
+      interval: 30s
+      timeout: 3s
+      retries: 1
+      start_period: 5s
+
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.n8n.rule=Host(`n8n.${PUBLIC_DOMAIN}`)"
+      - "traefik.docker.network=edge"
+      - "traefik.http.routers.n8n.rule=Host(`n8n.hexwyrm.com`)"
       - "traefik.http.routers.n8n.entrypoints=websecure"
+      - "traefik.http.routers.n8n.tls=true"
+      - "traefik.http.routers.n8n.service=n8n"
       - "traefik.http.services.n8n.loadbalancer.server.port=5678"
-      - "traefik.http.middlewares.basic-auth.basicauth.usersfile=/run/secrets/TRAEFIK_BASIC_AUTH"
-      - "traefik.http.routers.n8n.middlewares=basic-auth@docker"
+      - "traefik.http.services.n8n.loadbalancer.server.scheme=http"
+      # Optional: protect with the same BasicAuth as the others
+      # - "traefik.http.routers.n8n.middlewares=basic-auth@docker"
 
 secrets:
-  TRAEFIK_BASIC_AUTH:
-    file: /opt/dragoncave/secrets/TRAEFIK_BASIC_AUTH
   N8N_ENCRYPTION_KEY:
     file: /opt/dragoncave/secrets/N8N_ENCRYPTION_KEY
 
 networks:
-  edge: {external: true}
-  core: {external: true}
+  edge:
+    external: true

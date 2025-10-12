@@ -3,8 +3,7 @@ services:
     image: nodered/node-red:3.1
     restart: unless-stopped
     user: "1000:1000"
-    read_only: false
-    networks: [edge, core]
+    networks: [edge]
     volumes:
       - /srv/flows-data:/data
     healthcheck:
@@ -12,20 +11,15 @@ services:
       interval: 30s
       timeout: 5s
       retries: 5
-    secrets:
-      - TRAEFIK_BASIC_AUTH
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.flows.rule=Host(`flows.${PUBLIC_DOMAIN}`)"
+      - "traefik.docker.network=edge"
+      - "traefik.http.routers.flows.rule=Host(`flows.hexwyrm.com`)"
       - "traefik.http.routers.flows.entrypoints=websecure"
+      - "traefik.http.routers.flows.tls=true"
+      - "traefik.http.routers.flows.service=flows"
       - "traefik.http.services.flows.loadbalancer.server.port=1880"
-      - "traefik.http.middlewares.basic-auth.basicauth.usersfile=/run/secrets/TRAEFIK_BASIC_AUTH"
-      - "traefik.http.routers.flows.middlewares=basic-auth@docker"
-
-secrets:
-  TRAEFIK_BASIC_AUTH:
-    file: /opt/dragoncave/secrets/TRAEFIK_BASIC_AUTH
 
 networks:
-  edge: {external: true}
-  core: {external: true}
+  edge:
+    external: true
