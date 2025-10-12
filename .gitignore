@@ -23,3 +23,8 @@ configs/pihole/etc-pihole/pihole-FTL.db*
 
 # Ignore Pi-hole live configs (root-owned)
 configs/pihole/**
+configs/uptime-kuma/*.db
+configs/uptime-kuma/*.db-shm
+configs/uptime-kuma/*.db-wal
+configs/uptime-kuma/*.sqlite
+configs/uptime-kuma/*.sqlite-wal
