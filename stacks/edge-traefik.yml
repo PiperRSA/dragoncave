@@ -34,7 +34,7 @@ services:
     volumes:
       # Docker socket now proxied via dprox on the core network
       - /opt/dragoncave/configs/traefik:/etc/traefik/dynamic:ro
-      - /opt/dragoncave/data/letsencrypt:/letsencrypt
+      - ${HOARD1_ROOT}/letsencrypt:/letsencrypt
       - /opt/dragoncave/secrets/traefik_basicauth.htpasswd:/run/secrets/traefik_basicauth:ro
     networks:
       edge:

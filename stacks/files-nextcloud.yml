@@ -25,7 +25,7 @@ services:
       POSTGRES_USER_FILE: /run/secrets/NEXTCLOUD_DB_USER
       POSTGRES_PASSWORD_FILE: /run/secrets/NEXTCLOUD_DB_PASS
     volumes:
-      - /opt/dragoncave/data/nextcloud:/var/www/html
+      - ${HOARD2_ROOT}/nextcloud:/var/www/html
     networks:
       - edge
       - core
@@ -45,7 +45,7 @@ services:
       POSTGRES_USER_FILE: /run/secrets/NEXTCLOUD_DB_USER
       POSTGRES_PASSWORD_FILE: /run/secrets/NEXTCLOUD_DB_PASS
     volumes:
-      - /opt/dragoncave/data/postgres/nextcloud:/var/lib/postgresql/data
+      - ${HOARD1_ROOT}/databases/postgres/nextcloud:/var/lib/postgresql/data
     networks:
       - core
 

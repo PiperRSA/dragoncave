@@ -9,8 +9,8 @@ Establish Dragoncave baseline practices, prerequisites, and shared automation be
 - Validate tooling by running the shared preflight diagnostics.
 
 ## Definition of Done
-- [ ] `docs/PHASES_OVERVIEW.md` updated with phase decisions.
-- [ ] `make preflight` executes without errors.
-- [ ] YAML manifests pass `yamllint`.
-- [ ] Shell automation passes `shellcheck`.
-- [ ] Dockerfiles pass `hadolint` (when present).
+- [x] `docs/PHASES_OVERVIEW.md` updated with phase decisions.
+- [x] `make preflight` executes without errors.
+- [x] YAML manifests pass `yamllint`.
+- [x] Shell automation passes `shellcheck`.
+- [x] Dockerfiles pass `hadolint` (when present).

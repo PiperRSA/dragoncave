@@ -22,7 +22,7 @@ services:
       ROCKET_WORKERS: 4
       ADMIN_TOKEN_FILE: /run/secrets/VAULTWARDEN_ADMIN_TOKEN
     volumes:
-      - /opt/dragoncave/data/vaultwarden:/data
+      - ${HOARD1_ROOT}/apps/vaultwarden:/data
     networks:
       - edge
       - core

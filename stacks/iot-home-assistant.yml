@@ -35,7 +35,7 @@ services:
     user: "1000:1000"
     volumes:
       - /opt/dragoncave/configs/mosquitto:/mosquitto/config
-      - /opt/dragoncave/data/mosquitto:/mosquitto/data
+      - ${HOARD1_ROOT}/apps/mosquitto:/mosquitto/data
     networks:
       - core
     labels:
@@ -53,7 +53,7 @@ services:
       DOCKER_INFLUXDB_INIT_BUCKET: telemetry
       DOCKER_INFLUXDB_INIT_ADMIN_TOKEN_FILE: /run/secrets/INFLUXDB_ADMIN_TOKEN
     volumes:
-      - /opt/dragoncave/data/influxdb:/var/lib/influxdb2
+      - ${HOARD1_ROOT}/apps/influxdb:/var/lib/influxdb2
     networks:
       - core
 
@@ -63,6 +63,7 @@ services:
     user: "1000:1000"
     environment:
       INFLUX_TOKEN_FILE: /run/secrets/INFLUXDB_ADMIN_TOKEN
+      PI_HOST_IP: ${PI_HOST_IP}
     volumes:
       - /opt/dragoncave/configs/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
     networks:

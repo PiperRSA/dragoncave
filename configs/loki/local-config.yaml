@@ -1,0 +1,29 @@
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  http_listen_address: 0.0.0.0
+  log_level: info
+
+common:
+  path: /loki
+  replication_factor: 1
+
+storage:
+  filesystem:
+    chunks_directory: /loki/chunks
+    rules_directory: /loki/rules
+
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: boltdb-shipper
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+table_manager:
+  retention_deletes_enabled: true
+  retention_period: 720h  # 30 days

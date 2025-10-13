@@ -27,9 +27,9 @@ services:
       PAPERLESS_DBUSER_FILE: /run/secrets/PAPERLESS_DB_USER
       PAPERLESS_DBPASS_FILE: /run/secrets/PAPERLESS_DB_PASS
     volumes:
-      - /opt/dragoncave/data/paperless/data:/usr/src/paperless/data
-      - /opt/dragoncave/data/paperless/media:/usr/src/paperless/media
-      - /opt/dragoncave/data/paperless/consume:/usr/src/paperless/consume
+      - ${HOARD2_ROOT}/paperless/data:/usr/src/paperless/data
+      - ${HOARD2_ROOT}/paperless/media:/usr/src/paperless/media
+      - ${HOARD2_ROOT}/paperless/consume:/usr/src/paperless/consume
     networks:
       - edge
       - core
@@ -57,7 +57,7 @@ services:
       POSTGRES_USER_FILE: /run/secrets/PAPERLESS_DB_USER
       POSTGRES_PASSWORD_FILE: /run/secrets/PAPERLESS_DB_PASS
     volumes:
-      - /opt/dragoncave/data/postgres/paperless:/var/lib/postgresql/data
+      - ${HOARD1_ROOT}/databases/postgres/paperless:/var/lib/postgresql/data
     networks:
       - core
 

@@ -21,7 +21,7 @@ services:
       MEILI_ENV: production
       MEILI_MASTER_KEY_FILE: /run/secrets/MEILI_MASTER_KEY
     volumes:
-      - /opt/dragoncave/data/meili:/meili_data
+      - ${HOARD1_ROOT}/search/meili:/meili_data
     networks:
       - edge
       - core

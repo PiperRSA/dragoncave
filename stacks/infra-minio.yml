@@ -22,7 +22,7 @@ services:
       MINIO_ROOT_PASSWORD_FILE: /run/secrets/MINIO_ROOT_PASS
     command: server /data --console-address ":9001"
     volumes:
-      - /opt/dragoncave/data/minio:/data
+      - ${HOARD2_ROOT}/minio:/data
     networks:
       - edge
       - core

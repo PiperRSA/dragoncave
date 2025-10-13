@@ -1,0 +1,65 @@
+x-deploy-defaults: &deploy_defaults
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+services:
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    <<: *deploy_defaults
+    user: "0:0"
+    command:
+      - --disable_metrics=percpu,referenced_memory,resctrl,udp,advtcp,sched,hugetlb,accelerator
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    networks:
+      - core
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.1
+    <<: *deploy_defaults
+    user: "0:0"
+    network_mode: host
+    pid: host
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|run|var/lib/docker/.+)($$|/)
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host:ro,rslave
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
+
+  smart-exporter:
+    image: quay.io/prometheuscommunity/smartctl-exporter:latest
+    <<: *deploy_defaults
+    user: "0:0"
+    privileged: true
+    env_file:
+      - /opt/dragoncave/.env.dragoncave
+    environment:
+      SMARTCTL_INTERVAL: "${SMARTCTL_INTERVAL:-1800}"
+      SMARTCTL_DEVICES: "${SMARTCTL_DEVICES:-}"
+    volumes:
+      - /run/udev:/run/udev:ro
+    networks:
+      - core
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
+    profiles:
+      - storage
+
+networks:
+  core:
+    external: true

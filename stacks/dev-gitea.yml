@@ -21,7 +21,7 @@ services:
       USER_UID: 1000
       USER_GID: 1000
     volumes:
-      - /opt/dragoncave/data/gitea:/data
+      - ${HOARD1_ROOT}/apps/gitea:/data
     networks:
       - edge
       - core

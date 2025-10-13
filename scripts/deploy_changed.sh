@@ -13,6 +13,6 @@ fi
 for f in "${FILES[@]}"; do
   [ -f "$f" ] || continue
   echo "Applying stack: $f"
-  docker compose -f "$f" up -d
+  docker compose --env-file /opt/dragoncave/.env.dragoncave -f "$f" up -d
 done
 echo "Done."

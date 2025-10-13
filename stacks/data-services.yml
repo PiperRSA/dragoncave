@@ -16,7 +16,7 @@ services:
       POSTGRES_USER_FILE: /run/secrets/POSTGRES_USER
       POSTGRES_PASSWORD_FILE: /run/secrets/POSTGRES_PASSWORD
     volumes:
-      - /opt/dragoncave/data/postgres/shared:/var/lib/postgresql/data
+      - ${HOARD1_ROOT}/databases/postgres/shared:/var/lib/postgresql/data
     networks:
       - core
 
@@ -30,7 +30,7 @@ services:
       MARIADB_PASSWORD_FILE: /run/secrets/MARIADB_PASS
       MARIADB_ROOT_PASSWORD_FILE: /run/secrets/MARIADB_ROOT_PASS
     volumes:
-      - /opt/dragoncave/data/mariadb:/var/lib/mysql
+      - ${HOARD1_ROOT}/databases/mariadb:/var/lib/mysql
     networks:
       - core
 
@@ -40,7 +40,7 @@ services:
     user: "1000:1000"
     command: redis-server --save 60 1 --loglevel warning
     volumes:
-      - /opt/dragoncave/data/redis:/data
+      - ${HOARD1_ROOT}/databases/redis:/data
     networks:
       - core
 

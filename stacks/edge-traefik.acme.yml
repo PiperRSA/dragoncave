@@ -7,7 +7,7 @@ services:
       - --certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare
       - --certificatesresolvers.cloudflare.acme.dnschallenge.disablePropagationCheck=true
     volumes:
-      - /opt/dragoncave/data/letsencrypt/acme.json:/letsencrypt/acme.json
+      - ${HOARD1_ROOT}/letsencrypt/acme.json:/letsencrypt/acme.json
     labels:
       - traefik.http.routers.traefik.tls=true
       - traefik.http.routers.traefik.tls.certresolver=cloudflare

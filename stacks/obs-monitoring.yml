@@ -18,7 +18,7 @@ services:
     <<: *deploy_defaults
     user: "1000:1000"
     volumes:
-      - /opt/dragoncave/configs/kuma:/app/data
+      - ${HOARD1_ROOT}/observability/kuma:/app/data
     networks:
       - edge
       - core

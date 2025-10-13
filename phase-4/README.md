@@ -8,9 +8,15 @@ Deliver data-centric services including Pi-hole, Meilisearch, and supporting sto
 - Establish backup, restore, and upgrade procedures for stateful workloads.
 - Align data retention with the security baselines in `/docs`.
 
+## Deliverables
+- DNS stack (`stacks/dns-pihole.yml`) with configs under `configs/pihole/`.
+- Search stack (`stacks/search-meili.yml`) guarded by Traefik and secrets.
+- Shared database bundle (`stacks/data-services.yml`) for Postgres, MariaDB, Redis.
+- Operations runbook `docs/DATA_SERVICES_GUIDE.md`.
+
 ## Definition of Done
-- [ ] Run `make preflight` successfully.
-- [ ] YAML manifests pass `yamllint`.
-- [ ] Shell automation passes `shellcheck`.
-- [ ] Dockerfiles pass `hadolint` (when present).
-- [ ] Phase outcomes captured in `docs/PHASES_OVERVIEW.md`.
+- [x] Run `make preflight` successfully.
+- [x] YAML manifests pass `yamllint`.
+- [x] Shell automation passes `shellcheck`.
+- [x] Dockerfiles pass `hadolint` (when present).
+- [x] Phase outcomes captured in `docs/PHASES_OVERVIEW.md`.

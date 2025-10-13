@@ -20,7 +20,7 @@ services:
     command: -config.file=/etc/loki/local-config.yaml
     volumes:
       - /opt/dragoncave/configs/loki:/etc/loki
-      - /opt/dragoncave/data/loki:/loki
+      - ${HOARD1_ROOT}/observability/loki:/loki
     networks:
       - core
 
@@ -47,7 +47,7 @@ services:
     environment:
       GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/GRAFANA_ADMIN_PASS
     volumes:
-      - /opt/dragoncave/configs/grafana:/var/lib/grafana
+      - ${HOARD1_ROOT}/observability/grafana:/var/lib/grafana
     networks:
       - edge
       - core

@@ -27,7 +27,7 @@ services:
       DB_PASSWORD_FILE: /run/secrets/IMMICH_DB_PASS
       REDIS_HOST: immich-redis
     volumes:
-      - /opt/dragoncave/data/immich/photos:/usr/src/app/upload
+      - ${HOARD2_ROOT}/immich/photos:/usr/src/app/upload
     networks:
       - edge
       - core
@@ -47,7 +47,7 @@ services:
       POSTGRES_USER_FILE: /run/secrets/IMMICH_DB_USER
       POSTGRES_PASSWORD_FILE: /run/secrets/IMMICH_DB_PASS
     volumes:
-      - /opt/dragoncave/data/postgres/immich:/var/lib/postgresql/data
+      - ${HOARD1_ROOT}/databases/postgres/immich:/var/lib/postgresql/data
     networks:
       - core
 
