@@ -1,9 +1,11 @@
 # Ignore environment files
 .env
 .env.*
+!.env.dragoncave.example
 
 # Ignore secrets
-secrets/
+secrets/*
+!secrets/README.md
 *.secret
 *.key
 *.crt

@@ -23,7 +23,7 @@ This document gives contributors a quick start for updating Dragoncave while res
 2. Implement stack changes under `stacks/` or `configs/`.
 3. Run `make preflight` locally. Fix lint errors before pushing.
 4. Document outcomes in `CHANGELOG.md` with a dated section.
-5. Deploy on the Raspberry Pi using `scripts/deploy_changed.sh` once reviewed.
+5. Deploy via `sudo scripts/install.sh --upgrade` (preferred) or `scripts/deploy_changed.sh` for targeted rollouts.
 6. Use `docs/RUNBOOK_VALIDATION_CHECKLIST.md` while executing runbooks to keep procedures current.
 
 ## Secrets Handling
