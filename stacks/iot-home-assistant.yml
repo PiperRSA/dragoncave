@@ -72,14 +72,8 @@ services:
 secrets:
   INFLUXDB_ADMIN_PASS:
     file: /opt/dragoncave/secrets/INFLUXDB_ADMIN_PASS
-    uid: "1000"
-    gid: "1000"
-    mode: 0440
   INFLUXDB_ADMIN_TOKEN:
     file: /opt/dragoncave/secrets/INFLUXDB_ADMIN_TOKEN
-    uid: "1000"
-    gid: "1000"
-    mode: 0440
 
 networks:
   edge:

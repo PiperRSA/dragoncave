@@ -47,29 +47,14 @@ services:
 secrets:
   POSTGRES_USER:
     file: /opt/dragoncave/secrets/POSTGRES_USER
-    uid: "999"
-    gid: "999"
-    mode: 0440
   POSTGRES_PASSWORD:
     file: /opt/dragoncave/secrets/POSTGRES_PASSWORD
-    uid: "999"
-    gid: "999"
-    mode: 0440
   MARIADB_USER:
     file: /opt/dragoncave/secrets/MARIADB_USER
-    uid: "999"
-    gid: "999"
-    mode: 0440
   MARIADB_PASS:
     file: /opt/dragoncave/secrets/MARIADB_PASS
-    uid: "999"
-    gid: "999"
-    mode: 0440
   MARIADB_ROOT_PASS:
     file: /opt/dragoncave/secrets/MARIADB_ROOT_PASS
-    uid: "999"
-    gid: "999"
-    mode: 0440
 
 networks:
   core:

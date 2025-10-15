@@ -25,6 +25,3 @@ networks:
 secrets:
   CF_TUNNEL_TOKEN:
     file: /opt/dragoncave/secrets/CF_TUNNEL_TOKEN
-    uid: "1000"
-    gid: "1000"
-    mode: 0440

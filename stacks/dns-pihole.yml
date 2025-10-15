@@ -43,9 +43,6 @@ services:
 secrets:
   PIHOLE_ADMIN_PASS:
     file: /opt/dragoncave/secrets/PIHOLE_ADMIN_PASS
-    uid: "0"
-    gid: "0"
-    mode: 0400
 
 networks:
   edge:

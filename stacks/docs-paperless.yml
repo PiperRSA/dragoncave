@@ -64,14 +64,8 @@ services:
 secrets:
   PAPERLESS_DB_USER:
     file: /opt/dragoncave/secrets/PAPERLESS_DB_USER
-    uid: "999"
-    gid: "999"
-    mode: 0440
   PAPERLESS_DB_PASS:
     file: /opt/dragoncave/secrets/PAPERLESS_DB_PASS
-    uid: "999"
-    gid: "999"
-    mode: 0440
 
 networks:
   edge:

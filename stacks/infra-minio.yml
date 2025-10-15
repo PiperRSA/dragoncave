@@ -36,14 +36,8 @@ services:
 secrets:
   MINIO_ROOT_USER:
     file: /opt/dragoncave/secrets/MINIO_ROOT_USER
-    uid: "1000"
-    gid: "1000"
-    mode: 0440
   MINIO_ROOT_PASS:
     file: /opt/dragoncave/secrets/MINIO_ROOT_PASS
-    uid: "1000"
-    gid: "1000"
-    mode: 0440
 
 networks:
   edge:

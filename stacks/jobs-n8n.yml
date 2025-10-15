@@ -40,14 +40,8 @@ services:
 secrets:
   N8N_USER:
     file: /opt/dragoncave/secrets/N8N_USER
-    uid: "1000"
-    gid: "1000"
-    mode: 0440
   N8N_PASS:
     file: /opt/dragoncave/secrets/N8N_PASS
-    uid: "1000"
-    gid: "1000"
-    mode: 0440
 
 networks:
   edge:

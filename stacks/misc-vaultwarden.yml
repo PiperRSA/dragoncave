@@ -36,9 +36,6 @@ services:
 secrets:
   VAULTWARDEN_ADMIN_TOKEN:
     file: /opt/dragoncave/secrets/VAULTWARDEN_ADMIN_TOKEN
-    uid: "1000"
-    gid: "1000"
-    mode: 0400
 
 networks:
   edge:

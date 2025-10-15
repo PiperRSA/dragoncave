@@ -36,9 +36,6 @@ services:
 secrets:
   MEILI_MASTER_KEY:
     file: /opt/dragoncave/secrets/MEILI_MASTER_KEY
-    uid: "1000"
-    gid: "1000"
-    mode: 0440
 
 networks:
   edge:
