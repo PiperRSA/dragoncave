@@ -9,12 +9,10 @@ LOG_DIR="${BASE_DIR}/logs"
 LOG_FILE="${LOG_DIR}/installer.log"
 REPO_URL="${DRAGONCAVE_REPO_URL:-https://github.com/PiperRSA/dragoncave.git}"
 REQUIRED_NETWORKS=("edge" "core" "dns")
-DEFAULT_STACKS=("sec-docker-socket-proxy.yml" "edge-traefik.yml" "tunnel-cloudflared.yml" "portainer.yml" "dns-pihole.yml" "obs-logs.yml" "obs-exporters.yml" "obs-monitoring.yml" "data-services.yml")
-ACTION="${1:-install}"
-
-mkdir -p "${LOG_DIR}"
-touch "${LOG_FILE}"
-exec > >(tee -a "${LOG_FILE}") 2>&1
+DEFAULT_STACKS=("sec-docker-socket-proxy.yml" "edge-traefik.yml" "tunnel-cloudflared.yml" "portainer.yml" "dns-pihole.yml" "obs-logs.yml" "obs-exporters.yml" "obs-monitoring.yml" "obs-watchtower.yml" "data-services.yml")
+TARGET_BRANCH="${DRAGONCAVE_BRANCH:-main}"
+ACTION="install"
+PLAN_MODE=false
 
 colour() {
   local code="$1"; shift || true
@@ -26,6 +24,51 @@ log()   { printf "[%s] %s\n" "$(now)" "$(colour '32' "$*")"; }
 warn()  { printf "[%s] %s\n" "$(now)" "$(colour '33' "$*")"; }
 err()   { printf "[%s] %s\n" "$(now)" "$(colour '31' "$*")" >&2; }
 fatal() { err "$*"; exit 1; }
+
+init_logging() {
+  mkdir -p "${LOG_DIR}"
+  touch "${LOG_FILE}"
+  exec > >(tee -a "${LOG_FILE}") 2>&1
+}
+
+set_action() {
+  local new_action="$1"
+  if [[ "${ACTION}" != "install" && "${ACTION}" != "${new_action}" ]]; then
+    fatal "Multiple actions requested (${ACTION} vs ${new_action})."
+  fi
+  ACTION="${new_action}"
+}
+
+parse_args() {
+  while (($#)); do
+    case "$1" in
+      --branch=*)
+        TARGET_BRANCH="${1#*=}"
+        ;;
+      --branch)
+        shift
+        if (($# == 0)); then
+          fatal "--branch requires a value"
+        fi
+        TARGET_BRANCH="$1"
+        ;;
+      --plan|plan)
+        PLAN_MODE=true
+        set_action "plan"
+        ;;
+      --status|--upgrade|--reset-soft|--reset-hard|--uninstall|install)
+        set_action "$1"
+        ;;
+      --help|-h)
+        set_action "--help"
+        ;;
+      *)
+        fatal "Unknown argument: $1"
+        ;;
+    esac
+    shift || true
+  done
+}
 
 require_root() {
   if [[ "${EUID}" -ne 0 ]]; then
@@ -51,17 +94,29 @@ ensure_packages() {
   systemctl start docker >/dev/null 2>&1 || true
 }
 
+checkout_target_branch() {
+  if git -C "${REPO_DIR}" show-ref --verify --quiet "refs/heads/${TARGET_BRANCH}"; then
+    git -C "${REPO_DIR}" checkout "${TARGET_BRANCH}" >/dev/null 2>&1 \
+      || git -C "${REPO_DIR}" switch "${TARGET_BRANCH}" >/dev/null 2>&1 \
+      || fatal "Unable to switch to ${TARGET_BRANCH}"
+  elif git -C "${REPO_DIR}" show-ref --verify --quiet "refs/remotes/origin/${TARGET_BRANCH}"; then
+    git -C "${REPO_DIR}" checkout -B "${TARGET_BRANCH}" "origin/${TARGET_BRANCH}" >/dev/null 2>&1 \
+      || fatal "Unable to create local branch ${TARGET_BRANCH}"
+  else
+    fatal "Branch ${TARGET_BRANCH} not found on origin"
+  fi
+}
+
 clone_or_update_repo() {
   mkdir -p "$(dirname "${REPO_DIR}")"
   if [[ -d "${REPO_DIR}/.git" ]]; then
-    log "Updating existing repository at ${REPO_DIR}"
-    git -C "${REPO_DIR}" fetch --all --prune
-    git -C "${REPO_DIR}" checkout main >/dev/null 2>&1 || true
-    git -C "${REPO_DIR}" reset --hard origin/main
+    log "Syncing repository at ${REPO_DIR} (branch ${TARGET_BRANCH})"
+    git -C "${REPO_DIR}" fetch origin --prune
+    checkout_target_branch
+    git -C "${REPO_DIR}" pull --ff-only origin "${TARGET_BRANCH}"
   else
-    log "Cloning repository to ${REPO_DIR}"
-    git clone "${REPO_URL}" "${REPO_DIR}"
-    git -C "${REPO_DIR}" checkout main >/dev/null 2>&1 || true
+    log "Cloning repository branch ${TARGET_BRANCH} to ${REPO_DIR}"
+    git clone --branch "${TARGET_BRANCH}" --single-branch "${REPO_URL}" "${REPO_DIR}"
   fi
 }
 
@@ -77,6 +132,23 @@ load_env() {
   # shellcheck disable=SC1090
   source "${ENV_FILE}"
   set +a
+}
+
+load_env_optional() {
+  if [[ -r "${ENV_FILE}" ]]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "${ENV_FILE}"
+    set +a
+    return 0
+  fi
+  warn "Environment file ${ENV_FILE} missing or unreadable; continuing with defaults."
+  return 1
+}
+
+ensure_dir() {
+  local path="$1" mode="$2" owner="$3" group="$4"
+  install -d -m "${mode}" -o "${owner}" -g "${group}" "${path}"
 }
 
 detect_storage_path() {
@@ -113,36 +185,58 @@ prepare_storage() {
   detect_storage_path VAULT3_ROOT "${BASE_DIR}/storage/vault3" Vault3
 
   local hoard1_dirs=(
-    "${HOARD1_ROOT}/letsencrypt"
-    "${HOARD1_ROOT}/databases/postgres/shared"
-    "${HOARD1_ROOT}/databases/postgres/paperless"
-    "${HOARD1_ROOT}/databases/postgres/nextcloud"
-    "${HOARD1_ROOT}/databases/postgres/immich"
-    "${HOARD1_ROOT}/databases/mariadb"
-    "${HOARD1_ROOT}/databases/redis"
-    "${HOARD1_ROOT}/observability/loki"
-    "${HOARD1_ROOT}/observability/grafana"
-    "${HOARD1_ROOT}/observability/kuma"
-    "${HOARD1_ROOT}/apps/gitea"
-    "${HOARD1_ROOT}/apps/mosquitto"
-    "${HOARD1_ROOT}/apps/influxdb"
-    "${HOARD1_ROOT}/apps/vaultwarden"
+    "${HOARD1_ROOT}:0750:0:0"
+    "${HOARD1_ROOT}/letsencrypt:0750:0:0"
+    "${HOARD1_ROOT}/databases:0750:0:0"
+    "${HOARD1_ROOT}/databases/postgres:0750:0:0"
+    "${HOARD1_ROOT}/databases/postgres/shared:0750:999:999"
+    "${HOARD1_ROOT}/databases/postgres/paperless:0750:999:999"
+    "${HOARD1_ROOT}/databases/postgres/nextcloud:0750:999:999"
+    "${HOARD1_ROOT}/databases/postgres/immich:0750:999:999"
+    "${HOARD1_ROOT}/databases/mariadb:0750:999:999"
+    "${HOARD1_ROOT}/databases/redis:0750:1000:1000"
+    "${HOARD1_ROOT}/observability:0750:0:0"
+    "${HOARD1_ROOT}/observability/loki:0750:1000:1000"
+    "${HOARD1_ROOT}/observability/grafana:0750:1000:1000"
+    "${HOARD1_ROOT}/observability/kuma:0750:1000:1000"
+    "${HOARD1_ROOT}/observability/promtail:0750:0:0"
+    "${HOARD1_ROOT}/search:0750:0:0"
+    "${HOARD1_ROOT}/search/meili:0750:1000:1000"
+    "${HOARD1_ROOT}/apps:0750:0:0"
+    "${HOARD1_ROOT}/apps/homeassistant:0750:1000:1000"
+    "${HOARD1_ROOT}/apps/gitea:0750:1000:1000"
+    "${HOARD1_ROOT}/apps/mosquitto:0750:1000:1000"
+    "${HOARD1_ROOT}/apps/influxdb:0750:1000:1000"
+    "${HOARD1_ROOT}/apps/vaultwarden:0750:1000:1000"
   )
   local hoard2_dirs=(
-    "${HOARD2_ROOT}/nextcloud"
-    "${HOARD2_ROOT}/paperless/data"
-    "${HOARD2_ROOT}/paperless/media"
-    "${HOARD2_ROOT}/paperless/consume"
-    "${HOARD2_ROOT}/immich/photos"
-    "${HOARD2_ROOT}/minio"
+    "${HOARD2_ROOT}:0750:0:0"
+    "${HOARD2_ROOT}/nextcloud:0750:1000:1000"
+    "${HOARD2_ROOT}/paperless:0750:0:0"
+    "${HOARD2_ROOT}/paperless/data:0750:1000:1000"
+    "${HOARD2_ROOT}/paperless/media:0750:1000:1000"
+    "${HOARD2_ROOT}/paperless/consume:0750:1000:1000"
+    "${HOARD2_ROOT}/immich:0750:0:0"
+    "${HOARD2_ROOT}/immich/photos:0750:1000:1000"
+    "${HOARD2_ROOT}/minio:0750:1000:1000"
   )
   local vault_dirs=(
-    "${VAULT3_ROOT}"
-    "${VAULT3_ROOT}/restic"
+    "${VAULT3_ROOT}:0750:0:0"
+    "${VAULT3_ROOT}/restic:0750:0:0"
   )
-  for dir in "${hoard1_dirs[@]}"; do install -d -m 0750 "${dir}"; done
-  for dir in "${hoard2_dirs[@]}"; do install -d -m 0750 "${dir}"; done
-  for dir in "${vault_dirs[@]}"; do install -d -m 0750 "${dir}"; done
+  local entry dir mode owner group
+  for entry in "${hoard1_dirs[@]}"; do
+    IFS=':' read -r dir mode owner group <<<"${entry}"
+    ensure_dir "${dir}" "${mode}" "${owner}" "${group}"
+  done
+  for entry in "${hoard2_dirs[@]}"; do
+    IFS=':' read -r dir mode owner group <<<"${entry}"
+    ensure_dir "${dir}" "${mode}" "${owner}" "${group}"
+  done
+  for entry in "${vault_dirs[@]}"; do
+    IFS=':' read -r dir mode owner group <<<"${entry}"
+    ensure_dir "${dir}" "${mode}" "${owner}" "${group}"
+  done
   export HOARD1_ROOT HOARD2_ROOT VAULT3_ROOT
   update_env_var HOARD1_ROOT "${HOARD1_ROOT}"
   update_env_var HOARD2_ROOT "${HOARD2_ROOT}"
@@ -156,10 +250,41 @@ ensure_base_directories() {
   done
 }
 
+prepare_config_dirs() {
+  local config_dirs=(
+    "${BASE_DIR}/configs/node-red:0755:1000:1000"
+    "${BASE_DIR}/configs/n8n:0755:1000:1000"
+    "${BASE_DIR}/configs/homeassistant:0755:1000:1000"
+    "${BASE_DIR}/configs/mosquitto:0755:1000:1000"
+    "${BASE_DIR}/configs/telegraf:0755:1000:1000"
+    "${BASE_DIR}/configs/loki:0755:1000:1000"
+    "${BASE_DIR}/configs/grafana:0755:1000:1000"
+    "${BASE_DIR}/configs/cloudflared:0755:1000:1000"
+    "${BASE_DIR}/configs/promtail:0755:0:0"
+    "${BASE_DIR}/configs/pihole:0755:0:0"
+    "${BASE_DIR}/configs/pihole/etc-pihole:0755:0:0"
+    "${BASE_DIR}/configs/pihole/etc-dnsmasq.d:0755:0:0"
+  )
+  local entry dir mode owner group
+  for entry in "${config_dirs[@]}"; do
+    IFS=':' read -r dir mode owner group <<<"${entry}"
+    ensure_dir "${dir}" "${mode}" "${owner}" "${group}"
+  done
+}
+
 discover_required_secrets() {
   local files
-  mapfile -t files < <(grep -R "/opt/dragoncave/secrets/" "${REPO_DIR}/stacks" -h \
-    | sed -E 's/.*\/opt\/dragoncave\/secrets\/([^"[:space:]]+).*/\1/' \
+  if [[ ! -d "${REPO_DIR}/stacks" ]]; then
+    REQUIRED_SECRETS=()
+    return
+  fi
+  local files=()
+  while IFS= read -r line; do
+    [[ -z "${line}" ]] && continue
+    files+=("${line}")
+  done < <(grep -R "/opt/dragoncave/secrets/" "${REPO_DIR}/stacks" -h \
+    | sed -E 's/.*\/opt\/dragoncave\/secrets\/([^":[:space:]]+).*/\1/' \
+    | cut -d':' -f1 \
     | sort -u)
   REQUIRED_SECRETS=("${files[@]}")
 }
@@ -172,6 +297,7 @@ wait_for_secrets() {
   fi
   log "Secrets required for deployment:"
   printf '  - %s\n' "${REQUIRED_SECRETS[@]}"
+  warn "Hint: run ${REPO_DIR}/scripts/secrets-bootstrap.sh --fill to scaffold missing secret files."
   while true; do
     local missing=()
     for secret in "${REQUIRED_SECRETS[@]}"; do
@@ -197,10 +323,32 @@ ensure_networks() {
   done
 }
 
+stack_project_name() {
+  local file="$1"
+  local name="${file##*/}"
+  name="${name%.*}"
+  name="${name//[^a-zA-Z0-9]/-}"
+  printf 'dragoncave-%s' "${name,,}"
+}
+
 compose_cmd() {
   local file="$1"
   shift
-  docker compose --env-file "${ENV_FILE}" -f "${REPO_DIR}/stacks/${file}" "$@"
+  docker compose \
+    --project-name "$(stack_project_name "${file}")" \
+    --env-file "${ENV_FILE}" \
+    -f "${REPO_DIR}/stacks/${file}" \
+    "$@"
+}
+
+resolve_stack_list() {
+  local stacks=()
+  if [[ -n "${ENABLED_STACKS:-}" ]]; then
+    read -r -a stacks <<<"${ENABLED_STACKS}"
+  else
+    stacks=("${DEFAULT_STACKS[@]}")
+  fi
+  printf '%s\n' "${stacks[@]}"
 }
 
 deploy_stack() {
@@ -227,11 +375,10 @@ deploy_stack() {
 
 deploy_stacks() {
   local stacks=()
-  if [[ -n "${ENABLED_STACKS:-}" ]]; then
-    read -r -a stacks <<<"${ENABLED_STACKS}"
-  else
-    stacks=("${DEFAULT_STACKS[@]}")
-  fi
+  while IFS= read -r line; do
+    [[ -z "${line}" ]] && continue
+    stacks+=("${line}")
+  done < <(resolve_stack_list)
   log "Deploying stacks: ${stacks[*]}"
   for stack in "${stacks[@]}"; do
     if [[ ! -f "${REPO_DIR}/stacks/${stack}" ]]; then
@@ -253,21 +400,79 @@ show_status() {
 
 upgrade_stacks() {
   log "Upgrading repository and containers"
-  git -C "${REPO_DIR}" fetch --all --prune
-  git -C "${REPO_DIR}" pull --ff-only
+  git -C "${REPO_DIR}" fetch origin --prune
+  checkout_target_branch
+  git -C "${REPO_DIR}" pull --ff-only origin "${TARGET_BRANCH}"
   load_env
+  prepare_config_dirs
+  prepare_storage
   ensure_networks
   deploy_stacks
+}
+
+plan_install() {
+  log "Planner mode enabled – no changes will be applied."
+  if [[ -d "${REPO_DIR}/.git" ]]; then
+    if ! git -C "${REPO_DIR}" fetch origin --prune >/dev/null 2>&1; then
+      warn "Unable to contact origin for ${REPO_URL}; showing local state only."
+    fi
+    local local_head remote_head
+    local_head="$(git -C "${REPO_DIR}" rev-parse --short HEAD 2>/dev/null || echo "n/a")"
+    remote_head="$(git -C "${REPO_DIR}" rev-parse --short "origin/${TARGET_BRANCH}" 2>/dev/null || echo "n/a")"
+    printf "Repository: %s\n" "${REPO_DIR}"
+    printf "  - branch: %s\n" "${TARGET_BRANCH}"
+    printf "  - local head: %s\n" "${local_head}"
+    printf "  - remote head: %s\n" "${remote_head}"
+  else
+    warn "Repository not present at ${REPO_DIR}; installer would clone branch ${TARGET_BRANCH}."
+  fi
+
+  load_env_optional || true
+  local stacks=()
+  while IFS= read -r line; do
+    [[ -z "${line}" ]] && continue
+    stacks+=("${line}")
+  done < <(resolve_stack_list)
+  printf "\nStacks scheduled for deployment:\n"
+  for stack in "${stacks[@]}"; do
+    local status="present"
+    if [[ ! -f "${REPO_DIR}/stacks/${stack}" ]]; then
+      status="missing"
+    fi
+    printf "  - %s [%s]\n" "${stack}" "${status}"
+  done
+
+  discover_required_secrets
+  if (( ${#REQUIRED_SECRETS[@]} == 0 )); then
+    warn "No secrets referenced yet; ensure stacks are committed."
+  else
+    printf "\nSecrets status (under %s):\n" "${SECRETS_DIR}"
+    local missing=()
+    for secret in "${REQUIRED_SECRETS[@]}"; do
+      if [[ -s "${SECRETS_DIR}/${secret}" ]]; then
+        printf "  - %s [OK]\n" "${secret}"
+      else
+        printf "  - %s [MISSING]\n" "${secret}"
+        missing+=("${secret}")
+      fi
+    done
+    if ((${#missing[@]})); then
+      warn "Missing secrets: ${missing[*]}"
+    else
+      log "All referenced secrets present."
+    fi
+  fi
+
+  printf "\nDry run complete. Re-run without --plan to execute.\n"
 }
 
 reset_soft() {
   load_env
   local stacks=()
-  if [[ -n "${ENABLED_STACKS:-}" ]]; then
-    read -r -a stacks <<<"${ENABLED_STACKS}"
-  else
-    stacks=("${DEFAULT_STACKS[@]}")
-  fi
+  while IFS= read -r line; do
+    [[ -z "${line}" ]] && continue
+    stacks+=("${line}")
+  done < <(resolve_stack_list)
   for stack in "${stacks[@]}"; do
     if [[ -f "${REPO_DIR}/stacks/${stack}" ]]; then
       compose_cmd "${stack}" down --remove-orphans || true
@@ -303,6 +508,7 @@ main_install() {
   check_arch
   ensure_packages
   ensure_base_directories
+  prepare_config_dirs
   clone_or_update_repo
   ensure_env_file
   load_env
@@ -313,6 +519,19 @@ main_install() {
   run_smoke_tests
   show_status
 }
+
+parse_args "$@"
+
+if [[ "${PLAN_MODE}" != true ]]; then
+  case "${ACTION}" in
+    install|--upgrade|--reset-soft|--reset-hard|--uninstall)
+      init_logging
+      ;;
+    *)
+      :
+      ;;
+  esac
+fi
 
 case "${ACTION}" in
   --status)
@@ -340,9 +559,21 @@ case "${ACTION}" in
     ;;
   --help|-h)
     cat <<'EOF'
-Usage: install.sh [--status|--upgrade|--reset-soft|--reset-hard|--uninstall]
+Usage: install.sh [--plan] [--branch <name>] [--status|--upgrade|--reset-soft|--reset-hard|--uninstall]
 Default (no flag) performs idempotent installation/upgrade with diagnostics.
+
+Options:
+  --plan             Dry-run summary; no changes applied.
+  --branch <name>    Target git branch (env: DRAGONCAVE_BRANCH, default main).
+  --status           Show container status and smoke-test summary.
+  --upgrade          Refresh repository, redeploy stacks, run smoke tests.
+  --reset-soft       Stop stacks and prune Docker images/containers.
+  --reset-hard       Reset Docker state (includes volumes and networks).
+  --uninstall        Archive and remove /opt/dragoncave.
 EOF
+    ;;
+  plan|--plan)
+    plan_install
     ;;
   install|*)
     main_install
